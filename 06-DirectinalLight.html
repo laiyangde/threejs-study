@@ -24,18 +24,18 @@
     var scene = new THREE.Scene();
     // 照相机
     var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(-25, 30, 25);
+    camera.position.set(-35, 30, 25);
     camera.lookAt(new THREE.Vector3(10, 0, 0));
     // 辅助轴
     var axes = new THREE.AxisHelper(20);
     scene.add(axes);
     // 平面
-    var planeGeometry = new THREE.PlaneGeometry(60, 20);
+    var planeGeometry = new THREE.PlaneGeometry(60, 20,20,20);
     var planeMaterial = new THREE.MeshPhongMaterial({
         color: 0xffffff
     });
     var plane = new THREE.Mesh(planeGeometry, planeMaterial);
-    plane.position.set(15, 0, 0);
+    plane.position.set(15, -5, 0);
     plane.rotation.x = -0.5 * Math.PI;
     plane.receiveShadow = true;
     scene.add(plane);
@@ -56,7 +56,7 @@
         // wireframe: true
     });
     var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-    sphere.position.set(20, 4, 2);
+    sphere.position.set(20, 0, 2);
     sphere.castShadow = true;
     scene.add(sphere);
 
@@ -64,55 +64,76 @@
     var ambiColor = "#0c0c0c";
     var ambientLight = new THREE.AmbientLight(ambiColor);
     scene.add(ambientLight);
+    //添加平行光
+    var directionalColor = "#ff5808";
+    var directionalLight = new THREE.DirectionalLight(directionalColor);
+    directionalLight.position.set(-40, 60, -10);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.camera.near = 2;
+    directionalLight.shadow.camera.far = 200;
+    directionalLight.shadow.camera.left = -50;
+    directionalLight.shadow.camera.right = 50;
+    directionalLight.shadow.camera.top = 50;
+    directionalLight.shadow.camera.bottom = -50;
+    directionalLight.intensity = 0.5;
+    //平行光辅助
+    scene.add(directionalLight);
+    var directionalLightHelper = new THREE.DirectionalLightHelper( directionalLight, 5 );
+    scene.add( directionalLightHelper );
 
-
-    // 点光源
-    var pointColor = "#ccffcc";
-    var pointLight = new THREE.PointLight(pointColor);
-    pointLight.distance = 50;
-    pointLight.castShadow = true;
-    scene.add(pointLight);
-
-    // 添加个小球模拟点光源位置
+    // 添加个小球模拟光源位置
     var sphereLight = new THREE.SphereGeometry(0.2);
     var sphereLightMaterial = new THREE.MeshBasicMaterial({color: 0xac6c25});
     var sphereLightMesh = new THREE.Mesh(sphereLight, sphereLightMaterial);
     sphereLightMesh.castShadow = true;
-    sphereLightMesh.position = new THREE.Vector3(3, 0, 3);
+    sphereLightMesh.position = new THREE.Vector3(3, 20, 3);
     scene.add(sphereLightMesh);
-
 
     var ctrls = {
         rotationSpeed:0.03,
         bouncingSpeed:0.03,
         ambientColor:ambiColor,
-        pointColor:pointColor,
-        intensity:1,
-        distance:50,
-        decay:1
+        directionalColor:directionalColor,
+        intensity:0.5,
+        castShadow:true,
+        target:"Plane",
     };
 
     var gui = new dat.GUI();
-    //改变环境光颜色
     gui.addColor(ctrls, 'ambientColor').onChange(function (e) {
         ambientLight.color = new THREE.Color(e);
     });
-    //改变点光源颜色
-    gui.addColor(ctrls, 'pointColor').onChange(function (e) {
-        pointLight.color = new THREE.Color(e);
+
+    gui.addColor(ctrls, 'directionalColor').onChange(function (e) {
+        directionalLight.color = new THREE.Color(e);
     });
-    //改变点光源光照强度
-    gui.add(ctrls, 'intensity', 0, 3).onChange(function (e) {
-        pointLight.intensity = e;
+
+
+    gui.add(ctrls, 'intensity', 0, 5).onChange(function (e) {
+        directionalLight.intensity = e;
     });
-     //改变点光源照射距离
-    gui.add(ctrls, 'distance', 0, 100).onChange(function (e) {
-        pointLight.distance = e;
+
+
+    gui.add(ctrls, 'castShadow').onChange(function (e) {
+        directionalLight.castShadow = e;
     });
-    // 改变沿着光照的距离光的衰减量
-    gui.add(ctrls, 'decay', 0, 100).onChange(function (e) {
-        pointLight.decay = e;
+
+    gui.add(ctrls, 'target', ['Plane', 'Sphere', 'Box']).onChange(function (e) {
+        switch (e) {
+            case "Plane":
+                directionalLight.target = plane;
+                break;
+            case "Sphere":
+                directionalLight.target = sphere;
+                break;
+            case "Box":
+                directionalLight.target = box;
+                break;
+        }
     });
+
+
+
     //统计对象,用户显示FPS
     var stats = initStats();
 
@@ -120,8 +141,6 @@
     render();
 
     var step = 0;
-    var invert = 1;
-    var phase = 0;
     function render() {
         stats.update();
         box.rotation.x += ctrls.rotationSpeed;
@@ -131,25 +150,12 @@
         sphere.position.x = 20 + 10 * Math.cos(step)
         sphere.position.y = 2 + 10 * Math.abs(Math.sin(step))
 
-        //360度后invert取反
-        if (phase > 2 * Math.PI) {
-            invert = invert * -1;
-            phase -= 2 * Math.PI;
-        } else {
-            phase += ctrls.rotationSpeed;
-        }
+        sphereLightMesh.position.z = -8;
+        sphereLightMesh.position.y = +(27 * (Math.sin(step / 3)));
+        sphereLightMesh.position.x = 10 + (26 * (Math.cos(step / 3)));
+        directionalLight.position.copy(sphereLightMesh.position);
+        directionalLightHelper.update();
 
-        //形成一个a=7  b=14的椭圆
-        sphereLightMesh.position.z = +(7 * (Math.sin(phase)));
-        sphereLightMesh.position.x = +(14 * (Math.cos(phase)));
-        sphereLightMesh.position.y = 5;
-
-        if (invert < 0) {//形成8字行，14为对称点
-            var pivot = 14;
-            sphereLightMesh.position.x = (invert * (sphereLightMesh.position.x - pivot)) + pivot;
-        }
-        //点光源复制小球位置
-        pointLight.position.copy(sphereLightMesh.position);
         requestAnimationFrame(render);
         renderer.render(scene, camera);
     }

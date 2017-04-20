@@ -64,9 +64,9 @@
     var ambiColor = "#0c0c0c";
     var ambientLight = new THREE.AmbientLight(ambiColor);
     scene.add(ambientLight);
-
-    var pointColor = "#ffffff";
-    var spotLight = new THREE.SpotLight(pointColor);
+    //添加聚光灯
+    var spotColor = "#ffffff";
+    var spotLight = new THREE.SpotLight(spotColor);
     spotLight.position.set(-40, 60, -10);
     spotLight.castShadow = true;
     spotLight.shadow.camera.near = 2;
@@ -75,14 +75,13 @@
     spotLight.target = plane;
     spotLight.distance = 0;
     spotLight.angle = 0.4;
-
     scene.add(spotLight);
-
+    //聚光灯辅助线
     var spotLightHelper = new THREE.SpotLightHelper( spotLight );
     scene.add( spotLightHelper );
 
 
-    // 添加个小球模拟光源
+    // 添加个小球模拟光源位置
     var sphereLight = new THREE.SphereGeometry(0.2);
     var sphereLightMaterial = new THREE.MeshBasicMaterial({color: 0xac6c25});
     var sphereLightMesh = new THREE.Mesh(sphereLight, sphereLightMaterial);
@@ -95,53 +94,51 @@ var stopMovingLight = false;
         rotationSpeed:0.03,
         bouncingSpeed:0.03,
         ambientColor:ambiColor,
-        pointColor:pointColor,
+        spotColor:spotColor,
         intensity:1,
         distance:0,
         penumbra:0,
         decay:1,
         angle:0.1,
-        debug:false,
         castShadow:true,
         target:"Plane",
         stopMovingLight:false,
     };
 
     var gui = new dat.GUI();
+    // 改变环境光颜色
     gui.addColor(ctrls, 'ambientColor').onChange(function (e) {
         ambientLight.color = new THREE.Color(e);
     });
-
-    gui.addColor(ctrls, 'pointColor').onChange(function (e) {
+    // 改变聚光灯颜色
+    gui.addColor(ctrls, 'spotColor').onChange(function (e) {
         spotLight.color = new THREE.Color(e);
     });
-
+    // 改变聚光灯锥形角度
     gui.add(ctrls, 'angle', 0, Math.PI * 2).onChange(function (e) {
         spotLight.angle = e;
     });
-
+    // 改变聚光灯光照强度
     gui.add(ctrls, 'intensity', 0, 5).onChange(function (e) {
         spotLight.intensity = e;
     });
-
+    // 改变聚光灯光照距离
     gui.add(ctrls, 'distance', 0, 200).onChange(function (e) {
         spotLight.distance = e;
     });
-
+    // 锥形中心点沿四周光强减弱的百分比
     gui.add(ctrls, 'penumbra', 0, 1).onChange(function (e) {
         spotLight.penumbra = e;
     });
+    // 沿着光照的距离光的衰减量
     gui.add(ctrls, 'decay', 0, 10).onChange(function (e) {
         spotLight.decay = e;
     });
-    gui.add(ctrls, 'debug').onChange(function (e) {
-        spotLight.shadow.camera.visible = e;
-    });
-
+    // 是否可以产生阴影
     gui.add(ctrls, 'castShadow').onChange(function (e) {
         spotLight.castShadow = e;
     });
-
+    // 光源的投射点
     gui.add(ctrls, 'target', ['Plane', 'Sphere', 'Box']).onChange(function (e) {
         switch (e) {
             case "Plane":
@@ -155,7 +152,7 @@ var stopMovingLight = false;
                 break;
         }
     });
-
+    //是否停止光源移动
     gui.add(ctrls, 'stopMovingLight').onChange(function (e) {
         stopMovingLight = e;
     });
@@ -197,9 +194,8 @@ var stopMovingLight = false;
 
             spotLight.position.copy(sphereLightMesh.position);
         }
-
+        //更新辅助线
         spotLightHelper.update();
-
         requestAnimationFrame(render);
         renderer.render(scene, camera);
     }
